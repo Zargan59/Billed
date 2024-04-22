@@ -21,7 +21,7 @@ export default class NewBill {
     e.preventDefault()
     const input = this.document.querySelector(`input[data-testid="file"]`)
     const file = input.files[0]
-    const extension = ['jpg', 'png', 'jpeg'] //Format accepté
+    const extension = ['image/jpg', 'image/png', 'image/jpeg'] //Format accepté
 
     const filePath = e.target.value.split(/\\/g)
     const fileName = filePath[filePath.length-1]
@@ -30,12 +30,11 @@ export default class NewBill {
     const email = JSON.parse(localStorage.getItem("user")).email
     
 
-  //Je sépare le format de l'extension à partir du point
-    const fileExtension = fileName.split(".")[1]
-    console.log(fileExtension);
+  //Je regarde le type de fichier
+    const fileExtension = file.type
+    
     if(extension.indexOf(fileExtension)== -1){
-      console.log('abc');
-      window.alert("Le format du fichier est incorrrect");
+      window.alert("Le format du fichier est incorrect");
       document.querySelector(`input[data-testid="file"]`).value = ''
     }else{
       formData.append('file', file)
@@ -49,7 +48,6 @@ export default class NewBill {
           }
         })
         .then(({fileUrl, key}) => {
-          console.log(fileUrl)
           this.billId = key
           this.fileUrl = fileUrl
           this.fileName = fileName

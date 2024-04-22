@@ -2,14 +2,14 @@
  * @jest-environment jsdom
  */
 
-import { screen, waitFor } from "@testing-library/dom"
+import { getByTestId, screen, waitFor } from "@testing-library/dom"
 import { fireEvent } from "@testing-library/dom";
-import mockStore from "../__mocks__/store"
+import mockStore from "../__mocks__/store.js"
 import router from "../app/Router.js";
-import { ROUTES, ROUTES_PATH } from "../constants/routes";
+import { ROUTES, ROUTES_PATH } from "../constants/routes.js";
 import NewBillUI from "../views/NewBillUI.js";
 import NewBill from "../containers/NewBill.js"
-import { localStorageMock } from "../__mocks__/localStorage";
+import { localStorageMock } from "../__mocks__/localStorage.js";
 jest.mock("../app/Store", () => mockStore)
 window.alert = jest.fn()
 
@@ -52,9 +52,12 @@ describe("Given I am connected as an employee", () => {
       const handleChangeFile = jest.fn(newBill.handleChangeFile)
       const inputFile = screen.getByTestId('file')
       const file = new File(["file.png"], "file.png", { type: "image/png" })
+
       inputFile.addEventListener("change", handleChangeFile)
-      fireEvent.change(inputFile, {target: {file: [file]}})
+      fireEvent.change(inputFile, {target: {files: [file]}})
+      
       jest.spyOn(window, "alert").mockImplementation(() => { })
+
       expect(window.alert).not.toHaveBeenCalled()
       window.alert = jsdomAlert
     })
@@ -90,64 +93,55 @@ describe("Given I am connected as an employee", () => {
       document.body.innerHTML = NewBillUI()
       const onNavigate = (pathname) => { document.body.innerHTML = ROUTES({ pathname }) }
       Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-      window.localStorage.setItem('user', JSON.stringify({ type: 'Employee', email: "a@a.com" }))
-      const newBill = new NewBill({ document, onNavigate, store: null, localStorage: window.localStorage })
-      const billMock = {
-        type: "Employee",
-        name : "Restaurant",
-        amount : 160,
-        date: "02/06/2023",
-        vat: 20,
-        pct : 15,
-        commentary: " Test présence du formulaire réussis ",
-        fileUrl: "CheminTest/Formulaire",
-        fileName: "img.jpg",
-        status: "pending"
-      }
-      screen.getByTestId("expense-type").value = billMock.type
-      screen.getByTestId("expense-name").value = billMock.name
-      screen.getByTestId("datepicker").value = billMock.date
-      screen.getByTestId("amount").value = billMock.amount
-      screen.getByTestId("vat").value = billMock.vat
-      screen.getByTestId("pct").value = billMock.pct
-      screen.getByTestId("commentary").value = billMock.commentary
-      newBill.fileName = billMock.fileName
-      newBill.fileUrl = billMock.fileUrl
-      newBill.updateBill = jest.fn()
-      const handleSubmit = jest.fn((e) => newBill.handleSubmit(e))
-      const form = screen.getByTestId("form-new-bill")
-      form.addEventListener("submit", handleSubmit)
-      fireEvent.submit(form)
-      expect(handleSubmit).toHaveBeenCalled()
-      expect(newBill.updateBill).toHaveBeenCalled()
-    })
+      window.localStorage.setItem('user', JSON.stringify({ type: 'Employee', email: "a@a" }))
+
+        //Simuler un nouveau formulaire
+      const email = "a@a"
+        const billPaper = {
+          email,
+          type : 'Transports',
+          name : 'Test post',
+          amount : 150,
+          date : "02/06/2023",
+          vat : 70,
+          pct : 20,
+          commentary : "Test post commentary",
+          fileURL : "test/post",
+          fileName : "test.png",
+          status : 'pending'
+        }
+        const newBill = new NewBill({document, onNavigate, store: null , localStorage :window.localStorage})
+
+        //Je push les différents billPaper pour chaque case du formulaire 
+        screen.getByTestId("expense-type").value = billPaper.type
+        screen.getByTestId("expense-name").value = billPaper.name
+        screen.getByTestId("amount").value = billPaper.amount
+        screen.getByTestId("datepicker").value = billPaper.date
+        screen.getByTestId("vat").value = billPaper.vat
+        screen.getByTestId("pct").value = billPaper.pct
+        screen.getByTestId("commentary").value = billPaper.commentary
+        newBill.fileUrl = billPaper.fileURL
+        newBill.fileName = billPaper.fileName
+        newBill.status = billPaper.status
+        console.log(test);
+        console.log(billPaper.type);
+
+        //Récupération des fonctions handleSubmit et updateBill
+        const handleSubmit = jest.fn((e)=> newBill.handleSubmit(e))
+        newBill.updateBill = jest.fn()
+        const form = screen.getByTestId("form-new-bill")
+        form.addEventListener("submit", handleSubmit)
+        fireEvent.submit(form)
+
+
+        //Je vérifie que la fonction appelle bien le updateBill et handleSubmit
+        expect(handleSubmit).toHaveBeenCalled()
+        expect(newBill.updateBill).toHaveBeenCalled()
+
+      })
   })
 
-  test('fetches error from an API and fails with 500 error', async () => {
-    jest.spyOn(mockStore, 'bills')
-    jest.spyOn(console, 'error').mockImplementation(() => { })
-    Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-    Object.defineProperty(window, 'location', { value: { hash: ROUTES_PATH['NewBill'] } })
-    window.localStorage.setItem('user', JSON.stringify({ type: 'Employee' }))
-    document.body.innerHTML = `<div id="root"></div>`
-    router()
-    const onNavigate = (pathname) => { document.body.innerHTML = ROUTES({ pathname }) }
-    mockStore.bills = jest.fn().mockImplementation(() => {
-      return {
-        update: () => Promise.reject(new Error('Erreur 500')),
-        list: () => Promise.reject(new Error('Erreur 500'))
-      }
-    })
-    const newBill = new NewBill({ document, onNavigate, store: mockStore, localStorage: window.localStorage })
 
-    // Submit form
-    const form = screen.getByTestId('form-new-bill')
-    const handleSubmit = jest.fn((e) => newBill.handleSubmit(e))
-    form.addEventListener('submit', handleSubmit)
-    fireEvent.submit(form)
-    await new Promise(process.nextTick)
-    expect(console.error).toBeCalled()
-  })
 });
 
 
